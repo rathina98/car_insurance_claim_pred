@@ -1,23 +1,26 @@
+#LOADING THE REQUIRED LIBRARIES
 library(ggplot2)
 library(dplyr)
 library(caret)
 library(caTools)    
 library(doParallel)
 
+#SETTING UP THE WORKING DIRECTORY
 setwd("C:/Users/Admin/Documents/insurance_train.csv")
 setwd("C:/Users/Admin/Documents/insurance_test.csv")
 tr<-read.csv("insurance_train.csv")
 tt<-read.csv("insurance_test.csv")
+
 str(tr)
 summary(tr)
 tt$is_claim<-0
 
-#Checking for Missing Values
+#CHECKING FOR MISSING VALUES
 all<-rbind(tr,tt)
 is.na(all)
 table(is.na(all))
 
-#Converting vectors into factors
+#CONVERTING VECTORS INTO FACTORS
 tr$is_claim<-as.factor(tr$is_claim)
 tr$ncap_rating<-as.factor(tr$ncap_rating)
 tr$gear_box<-as.factor(tr$gear_box)
@@ -35,7 +38,7 @@ tr$area_cluster<-as.factor(tr$area_cluster)
 summary(tr)
 dim(tr)
 
-#Data Visualisation
+#DATA VISUALISATION 
 ggplot(tr,aes(policy_tenure))+geom_freqpoly(bin=30)
 ggplot(tr,aes(policy_tenure,col=is_claim))+geom_freqpoly(bins=30)
 ggplot(tr,aes(age_of_car))+
@@ -113,7 +116,7 @@ ggplot(tr,aes(is_tpms))+
 ggplot(tr,aes(ncap_rating ,age_of_car,fill=is_claim))+
   geom_boxplot(outlier.color ="dark green")
 
-#Data Exploration
+#DATA EXPLORATION 
 no_claim_1<-tr%>%filter(age_of_car>=0.36&is_claim==1)
 count(no_claim_1)
 no_claim_2<-tr%>%filter(age_of_policyholder>=0.96&is_claim==1)
@@ -134,28 +137,28 @@ spe<-tr%>%
 count(spe)
 summary(tr$engine_type)
 
-#separating numeric values
+#SEPARATING NUMERIC VARIABLES
 nums = unlist(lapply(tr, is.numeric))
 empnums = tr[,nums]
 head(empnums)
 
-#Finding Highly Correlated Variables
+#FINDING HIGHLY CORRELATED VARIABLES
 correlationMatrix = cor(empnums)
 highlyCorrelated = findCorrelation(correlationMatrix, cutoff=0.5)
 colnames(empnums[,highlyCorrelated])
 
-#Removing Highly Correlated Variables
+#REMOVING HIGHLY CORRELATED VARIABLES
 emp2=empnums[,-highlyCorrelated]
 head(emp2)
 colnames(emp2)
 
-#Selecting the Important features
+#SELECTING THE IMPORTANT FEATURES
 tr_in<-tr%>%select(c(displacement,policy_tenure,age_of_car,age_of_policyholder,population_density,height,is_claim))
 summary(tr_in)
 tt_in<-tt%>%select(c(displacement,policy_tenure,age_of_car,age_of_policyholder,population_density,height,is_claim))
 summary(tt_in)
 
-#Model Building - Random Forest
+#MODEL BUILDING - RANDOM FOREST
 trctrl <- trainControl(method = "cv", number = 5)
 rf= train(
   is_claim~.,
@@ -170,12 +173,12 @@ summary(rf)
 predrf = predict.train(rf, newdata = tr_in_test)
 confusionMatrix(predrf, tr_in_test$is_claim, mode = "prec_recall")
 
-#Predicting the test data
+#PREDICTING THE TEST DATA
 predictions = predict(rf, newdata = tt_in)
 predictions
 summary(predictions)
 
-#Model Building - xgbTree
+#MODEL BUILDING - XGB TREE
 xgbTree= train(
   is_claim~.,
   data = tr_in_tr,
@@ -188,8 +191,8 @@ xgbTree= train(
 summary(xgbTree)
 pred = predict.train(xgbTree, newdata = tr_in_test)
 confusionMatrix(predrf, tr_in_test$is_claim, mode = "prec_recall")
-#Predicting the test data
+
+#PREDICTING THE TEST DATA
 predictions = predict(xgbTree, newdata = tt_in)
 predictions
 summary(predictions)
-
